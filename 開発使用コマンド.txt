@@ -1,0 +1,12 @@
+開発使用コマンド
+# プロジェクトディレクトリに移動
+mkdir mymoneylite && cd mymoneylite
+
+mkdir backend
+cd backend
+
+python -m venv .venv
+.venv\Scripts\activate
+
+pip install "fastapi[all]"
+
