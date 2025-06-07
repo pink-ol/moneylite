@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from .expense_parser import parse_and_classify # ステップ2で作成した関数をインポート
-
+from . import crud
 app = FastAPI()
 
 origins = [
@@ -25,7 +25,7 @@ class ExpenseOutput(BaseModel):
     price: int
     category: str
 
-@app.post("/expenses", response_model=ExpenseOutput)
+@app.post("/expenses", response_model=dict)
 async def create_expense(expense_input: ExpenseInput):
     """
     出費入力（自然文 → ルールベースで分類 → DB保存の前の処理）
@@ -35,8 +35,16 @@ async def create_expense(expense_input: ExpenseInput):
     
     # ここで、classified_dataをデータベースに保存する処理を呼び出す（将来的に実装）
     # db.save(classified_data)
+    new_expense = crud.create_expense(
+        item = classified_data["item"],
+        price = classified_data["price"],
+        category = classified_data["category"]
+    )
     
     # 解析結果をクライアント（フロントエンド）に返す
-    return classified_data
+    return new_expense
 
-# サーバーを起動するには、ターミナルで `uvicorn main:app --reload` を実行
+# GET /expenses のエンドポイントを新規追加
+@app.get("/expenses", response_model=list[dict])
+async def read_expenses():
+    return crud.get_expenses()
