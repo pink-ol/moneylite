@@ -1,8 +1,21 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from .expense_parser import parse_and_classify # ステップ2で作成した関数をインポート
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:5173", # Reactアプリのアドレス
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # すべてのHTTPメソッドを許可
+    allow_headers=["*"], # すべてのHTTPヘッダーを許可
+)
 
 class ExpenseInput(BaseModel):
     text: str # ユーザーが入力する自然文
