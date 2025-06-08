@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from .expense_parser import parse_and_classify # ステップ2で作成した関数をインポート
 from . import crud
@@ -54,3 +54,28 @@ async def remove_expense(expense_id: int):
     """指定されたIDの出費を削除する"""
     success = crud.delete_expense(expense_id)
     return {"ok": success}
+
+@app.get("/summary", response_model=dict)
+async def get_summary():
+    """残高サマリーを取得する"""
+    initial_balance_str = crud.get_setting('initial_balance')
+    initial_balance = int(initial_balance_str) if initial_balance_str else 0
+    
+    total_expenses = crud.get_current_month_total_expenses()
+    
+    current_balance = initial_balance - total_expenses
+    
+    return {
+        "initial_balance": initial_balance,
+        "total_expenses": total_expenses,
+        "current_balance": current_balance
+    }
+
+class BalanceUpdate(BaseModel):
+    balance: int = Field(..., ge=0) # 0以上の整数
+
+@app.post("/balance", response_model=dict)
+async def update_balance(balance_update: BalanceUpdate):
+    """初期残高を更新する"""
+    crud.update_setting('initial_balance', str(balance_update.balance))
+    return {"ok": True, "new_balance": balance_update.balance}

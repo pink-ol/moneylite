@@ -7,22 +7,36 @@ function App() {
   const [expenses, setExpenses] = useState([]); 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  const [summaryData, setSummaryData] = useState({
+    initial_balance: 0,
+    total_expenses: 0,
+    current_balance: 0,
+  });
+  const [balanceInput, setBalanceInput] = useState("");
+  // データを取得する関数を定義
+  const fetchData = async () => {
+    setError(null);
+    try {
+      // 履歴とサマリーを同時に取得
+      const [expensesRes, summaryRes] = await Promise.all([
+        fetch('http://127.0.0.1:8000/expenses'),
+        fetch('http://127.0.0.1:8000/summary')
+      ]);
+      if (!expensesRes.ok || !summaryRes.ok) {
+        throw new Error('データの取得に失敗しました');
+      }
+      const expensesData = await expensesRes.json();
+      const summaryData = await summaryRes.json();
+      setExpenses(expensesData);
+      setSummaryData(summaryData);
+      setBalanceInput(summaryData.initial_balance.toString());
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   // 初回レンダリング時に出費一覧を取得する
   useEffect(() => {
-    const fetchExpenses = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:8000/expenses');
-        if (!response.ok) {
-          throw new Error('データの取得に失敗しました');
-        }
-        const data = await response.json();
-        setExpenses(data); // 取得したデータでリストを更新
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-    fetchExpenses();
+    fetchData();
   }, []); // 第2引数の空配列は「初回の一度だけ実行」を意味する
 
   const handleSubmit = async (e) => {
@@ -51,6 +65,7 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+    await fetchData();
   };
 
   // 削除ボタンが押された時の処理
@@ -76,13 +91,64 @@ function App() {
     } catch (err) {
       setError(err.message);
     }
+    await fetchData();
+  };
+
+  // 初期残高を設定する関数を新規追加
+  const handleSetBalance = async (e) => {
+    e.preventDefault();
+    const newBalance = parseInt(balanceInput, 10);
+    if (isNaN(newBalance) || newBalance < 0){
+      setError("有効な数値を入力してください．");
+      return;
+    }
+    try{
+      const response = await fetch('http://127.0.0.1:8000/balance',{
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({balance: newBalance}),
+      });
+      if (!response.ok) throw new Error('残高の設定に失敗しました');
+      await fetchData(); //成功したらデータを再取得して画面を更新
+    } catch (err){
+      setError(err.message);
+    }
   };
 
   return (
     <div className="App">
       <header className="App-header">
         <h1>MyMoneyLite</h1>
-        <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', justifyContent: 'space-around', width: '80%', maxWidth: '600px', background: '#333', padding: '20px', borderRadius: '10px' }}>
+          <div>
+            <p style={{ margin: 0, color: '#aaa' }}>初期残高</p>
+            <p style={{ margin: 0, fontSize: '24px' }}>¥{summaryData.initial_balance.toLocaleString()}</p>
+          </div>
+          <div>
+            <p style={{ margin: 0, color: '#aaa' }}>今月の支出</p>
+            <p style={{ margin: 0, fontSize: '24px', color: '#ff6666' }}>¥{summaryData.total_expenses.toLocaleString()}</p>
+          </div>
+          <div>
+            <p style={{ margin: 0, color: '#aaa' }}>現在残高</p>
+            <p style={{ margin: 0, fontSize: '24px', color: '#66ccff' }}>¥{summaryData.current_balance.toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* ▼▼▼ 初期残高設定フォームを新規追加 ▼▼▼ */}
+        <form onSubmit={handleSetBalance} style={{ margin: '20px 0' }}>
+          <input
+            type="number"
+            value={balanceInput}
+            onChange={(e) => setBalanceInput(e.target.value)}
+            style={{ width: '200px', padding: '10px', fontSize: '16px' }}
+          />
+          <button type="submit" style={{ padding: '10px', marginLeft: '10px', fontSize: '16px' }}>
+            初期残高を設定
+          </button>
+        </form>
+
+        <hr style={{ width: '80%', borderColor: '#444' }} />
+        <form onSubmit={handleSubmit} style={{marginTop: '20px' }}>
           <input
             type="text"
             value={inputText}

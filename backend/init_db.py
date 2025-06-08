@@ -23,6 +23,18 @@ CREATE TABLE IF NOT EXISTS expenses (
 ''')
 print("テーブルを作成しました（または既に存在します）．")
 
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS settings(
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+)
+''')
+print("settingsテーブルを作成しました．")
+
+# 初期残高の初期値を挿入（存在しない場合のみ）
+cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", ('initial_balance', '0'))
+print("初期残高のデフォルト値を設定しました．")
+
 # 変更をコミット（確定）
 conn.commit()
 
