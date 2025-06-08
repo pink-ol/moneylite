@@ -83,3 +83,49 @@ def get_current_month_total_expenses() -> int:
     total = cursor.fetchone()[0]
     conn.close()
     return total if total else 0
+
+def create_income(source: str, amount: int) -> dict:
+    """収入をデータベースに登録する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO incomes (source, amount) VALUES (?, ?)", (source, amount))
+    new_id = cursor.lastrowid
+    conn.commit()
+    cursor.execute("SELECT * FROM incomes WHERE id = ?", (new_id,))
+    new_income = dict(cursor.fetchone())
+    conn.close()
+    return new_income
+
+def get_incomes() -> list[dict]:
+    """すべての収入を新しい順に取得する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM incomes ORDER BY created_at DESC")
+    incomes = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return incomes
+
+def delete_income(income_id: int) -> bool:
+    """指定されたIDの収入をデータベースから削除する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM incomes WHERE id = ?", (income_id,))
+    conn.commit()
+    success = conn.total_changes > 0
+    conn.close()
+    return success
+
+def get_current_month_total_incomes() -> int:
+    """今月の収入合計を取得する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    query = """
+    SELECT SUM(amount) FROM incomes
+    WHERE strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')
+    """
+    cursor.execute(query)
+    total = cursor.fetchone()[0]
+    conn.close()
+    return total if total else 0

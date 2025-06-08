@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from .expense_parser import parse_and_classify # ステップ2で作成した関数をインポート
 from . import crud
+from .income_parser import parse_income
+
 app = FastAPI()
 
 origins = [
@@ -62,11 +64,14 @@ async def get_summary():
     initial_balance = int(initial_balance_str) if initial_balance_str else 0
     
     total_expenses = crud.get_current_month_total_expenses()
-    
-    current_balance = initial_balance - total_expenses
+    total_incomes = crud.get_current_month_total_incomes() # 収入合計を取得
+
+    # 残高計算式
+    current_balance = initial_balance + total_incomes - total_expenses
     
     return {
         "initial_balance": initial_balance,
+        "total_incomes": total_incomes,
         "total_expenses": total_expenses,
         "current_balance": current_balance
     }
@@ -79,3 +84,24 @@ async def update_balance(balance_update: BalanceUpdate):
     """初期残高を更新する"""
     crud.update_setting('initial_balance', str(balance_update.balance))
     return {"ok": True, "new_balance": balance_update.balance}
+
+class IncomeInput(BaseModel):
+    text: str
+
+@app.post("/incomes", response_model=dict)
+async def create_income_entry(income_input: IncomeInput):
+    parsed_data = parse_income(income_input.text)
+    new_income = crud.create_income(
+        source=parsed_data["source"],
+        amount=parsed_data["amount"]
+    )
+    return new_income
+
+@app.get("/incomes", response_model=list[dict])
+async def read_incomes():
+    return crud.get_incomes()
+
+@app.delete("/incomes/{income_id}", response_model=dict)
+async def remove_income(income_id: int):
+    success = crud.delete_income(income_id)
+    return {"ok": success}

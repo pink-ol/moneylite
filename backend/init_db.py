@@ -35,6 +35,17 @@ print("settingsテーブルを作成しました．")
 cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", ('initial_balance', '0'))
 print("初期残高のデフォルト値を設定しました．")
 
+# incomesテーブルを作成
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS incomes(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+''')
+print("incomesテーブルを作成しました．")
+
 # 変更をコミット（確定）
 conn.commit()
 
