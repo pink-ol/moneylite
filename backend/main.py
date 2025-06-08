@@ -59,21 +59,28 @@ async def remove_expense(expense_id: int):
 
 @app.get("/summary", response_model=dict)
 async def get_summary():
-    """残高サマリーを取得する"""
-    initial_balance_str = crud.get_setting('initial_balance')
-    initial_balance = int(initial_balance_str) if initial_balance_str else 0
+    balance_at_payday_str = crud.get_setting('initial_balance')
+    balance_at_payday = int(balance_at_payday_str) if balance_at_payday_str else 0
     
-    total_expenses = crud.get_current_month_total_expenses()
-    total_incomes = crud.get_current_month_total_incomes() # 収入合計を取得
+    # 支出、臨時収入、給与収入をそれぞれ取得
+    cycle_expenses = crud.get_cycle_expenses()
+    adhoc_incomes = crud.get_cycle_incomes(is_salary=False) # 給料以外の収入
+    salary_incomes = crud.get_cycle_incomes(is_salary=True)   # 給料の収入
 
-    # 残高計算式
-    current_balance = initial_balance + total_incomes - total_expenses
+    # 新しい計算式で残高を算出
+    # 現在残高 = 給料日時点の残高 + 臨時収入 - 支出
+    current_balance = balance_at_payday + adhoc_incomes - cycle_expenses
+    
+    # 予測残高 = 現在残高 + 給与収入
+    projected_next_balance = current_balance + salary_incomes
     
     return {
-        "initial_balance": initial_balance,
-        "total_incomes": total_incomes,
-        "total_expenses": total_expenses,
-        "current_balance": current_balance
+        "balance_at_payday": balance_at_payday,
+        "adhoc_incomes": adhoc_incomes, # 臨時収入
+        "salary_incomes": salary_incomes, # 給与収入
+        "cycle_expenses": cycle_expenses,
+        "current_balance": current_balance,
+        "projected_next_balance": projected_next_balance,
     }
 
 class BalanceUpdate(BaseModel):

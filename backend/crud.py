@@ -70,20 +70,6 @@ def update_setting(key: str, value: str):
     conn.commit()
     conn.close()
 
-def get_current_month_total_expenses() -> int:
-    """今月の支出合計を取得する"""
-    conn = sqlite3.connect(DATABASE_URL)
-    cursor = conn.cursor()
-    # strftimeを使って、created_atの日付と現在の日付の「年-月」を比較する
-    query = """
-    SELECT SUM(price) FROM expenses 
-    WHERE strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')
-    """
-    cursor.execute(query)
-    total = cursor.fetchone()[0]
-    conn.close()
-    return total if total else 0
-
 def create_income(source: str, amount: int) -> dict:
     """収入をデータベースに登録する"""
     conn = sqlite3.connect(DATABASE_URL)
@@ -117,13 +103,37 @@ def delete_income(income_id: int) -> bool:
     conn.close()
     return success
 
-def get_current_month_total_incomes() -> int:
-    """今月の収入合計を取得する"""
+def get_cycle_expenses() -> int:
+    """現在の財政サイクルの支出合計を取得する"""
     conn = sqlite3.connect(DATABASE_URL)
     cursor = conn.cursor()
+    # ... (前回のSQLクエリのロジックはほぼ同じ) ...
     query = """
+    SELECT SUM(price) FROM expenses
+    WHERE created_at >= (SELECT CASE WHEN STRFTIME('%d', 'now', 'localtime') >= '25' THEN DATE(STRFTIME('%Y-%m', 'now', 'localtime') || '-25') ELSE DATE(STRFTIME('%Y-%m', 'now', 'localtime', '-1 months') || '-25') END)
+      AND created_at < (SELECT CASE WHEN STRFTIME('%d', 'now', 'localtime') >= '25' THEN DATE(STRFTIME('%Y-%m', 'now', 'localtime', '+1 months') || '-25') ELSE DATE(STRFTIME('%Y-%m', 'now', 'localtime') || '-25') END)
+    """
+    cursor.execute(query)
+    total = cursor.fetchone()[0]
+    conn.close()
+    return total if total else 0
+
+def get_cycle_incomes(is_salary: bool) -> int:
+    """現在の財政サイクルの収入合計を、給料かそれ以外かで分けて取得する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    
+    # is_salaryフラグによって、LIKE検索の条件を切り替える
+    if is_salary:
+        like_condition = "source LIKE '%給料%'"
+    else:
+        like_condition = "source NOT LIKE '%給料%'"
+
+    query = f"""
     SELECT SUM(amount) FROM incomes
-    WHERE strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')
+    WHERE ({like_condition})
+      AND created_at >= (SELECT CASE WHEN STRFTIME('%d', 'now', 'localtime') >= '25' THEN DATE(STRFTIME('%Y-%m', 'now', 'localtime') || '-25') ELSE DATE(STRFTIME('%Y-%m', 'now', 'localtime', '-1 months') || '-25') END)
+      AND created_at < (SELECT CASE WHEN STRFTIME('%d', 'now', 'localtime') >= '25' THEN DATE(STRFTIME('%Y-%m', 'now', 'localtime', '+1 months') || '-25') ELSE DATE(STRFTIME('%Y-%m', 'now', 'localtime') || '-25') END)
     """
     cursor.execute(query)
     total = cursor.fetchone()[0]
