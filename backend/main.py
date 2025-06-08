@@ -59,26 +59,24 @@ async def remove_expense(expense_id: int):
 
 @app.get("/summary", response_model=dict)
 async def get_summary():
-    balance_at_payday_str = crud.get_setting('initial_balance')
-    balance_at_payday = int(balance_at_payday_str) if balance_at_payday_str else 0
-    
-    # 支出、臨時収入、給与収入をそれぞれ取得
+    balance_at_payday = int(crud.get_setting('initial_balance') or '0')
     cycle_expenses = crud.get_cycle_expenses()
-    adhoc_incomes = crud.get_cycle_incomes(is_salary=False) # 給料以外の収入
-    salary_incomes = crud.get_cycle_incomes(is_salary=True)   # 給料の収入
-
-    # 新しい計算式で残高を算出
-    # 現在残高 = 給料日時点の残高 + 臨時収入 - 支出
-    current_balance = balance_at_payday + adhoc_incomes - cycle_expenses
+    adhoc_incomes = crud.get_cycle_incomes(is_salary=False)
+    salary_incomes = crud.get_cycle_incomes(is_salary=True)
     
-    # 予測残高 = 現在残高 + 給与収入
+    # 定額支出の合計を取得
+    total_fixed_expenses = crud.get_total_fixed_expenses()
+    
+    # 残高計算式を更新（定額支出を差し引く）
+    current_balance = balance_at_payday + adhoc_incomes - cycle_expenses - total_fixed_expenses
     projected_next_balance = current_balance + salary_incomes
     
     return {
         "balance_at_payday": balance_at_payday,
-        "adhoc_incomes": adhoc_incomes, # 臨時収入
-        "salary_incomes": salary_incomes, # 給与収入
+        "adhoc_incomes": adhoc_incomes,
+        "salary_incomes": salary_incomes,
         "cycle_expenses": cycle_expenses,
+        "total_fixed_expenses": total_fixed_expenses, # 定額支出合計を追加
         "current_balance": current_balance,
         "projected_next_balance": projected_next_balance,
     }
@@ -111,4 +109,22 @@ async def read_incomes():
 @app.delete("/incomes/{income_id}", response_model=dict)
 async def remove_income(income_id: int):
     success = crud.delete_income(income_id)
+    return {"ok": success}
+
+class FixedExpenseInput(BaseModel):
+    name: str
+    amount: int
+
+@app.post("/fixed_expenses", response_model=dict)
+async def create_fixed_expense_entry(item: FixedExpenseInput):
+    new_item = crud.create_fixed_expense(name=item.name, amount=item.amount)
+    return new_item
+
+@app.get("/fixed_expenses", response_model=list[dict])
+async def read_fixed_expenses():
+    return crud.get_fixed_expenses()
+
+@app.delete("/fixed_expenses/{item_id}", response_model=dict)
+async def remove_fixed_expense(item_id: int):
+    success = crud.delete_fixed_expense(item_id)
     return {"ok": success}

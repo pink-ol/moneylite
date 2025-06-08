@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS incomes(
 ''')
 print("incomesテーブルを作成しました．")
 
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS fixed_expenses(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    amount INTEGER NOT NULL
+)
+''')
+print("fixed_expensesテーブルを作成しました．")
+
 # 変更をコミット（確定）
 conn.commit()
 

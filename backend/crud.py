@@ -139,3 +139,45 @@ def get_cycle_incomes(is_salary: bool) -> int:
     total = cursor.fetchone()[0]
     conn.close()
     return total if total else 0
+
+def create_fixed_expense(name: str, amount: int) -> dict:
+    """定額支出をデータベースに登録する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO fixed_expenses (name, amount) VALUES (?, ?)", (name, amount))
+    new_id = cursor.lastrowid
+    conn.commit()
+    cursor.execute("SELECT * FROM fixed_expenses WHERE id = ?", (new_id,))
+    new_item = dict(cursor.fetchone())
+    conn.close()
+    return new_item
+
+def get_fixed_expenses() -> list[dict]:
+    """すべての定額支出を取得する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM fixed_expenses ORDER BY id DESC")
+    items = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return items
+
+def delete_fixed_expense(item_id: int) -> bool:
+    """指定されたIDの定額支出を削除する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM fixed_expenses WHERE id = ?", (item_id,))
+    conn.commit()
+    success = conn.total_changes > 0
+    conn.close()
+    return success
+
+def get_total_fixed_expenses() -> int:
+    """定額支出の合計金額を取得する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute("SELECT SUM(amount) FROM fixed_expenses")
+    total = cursor.fetchone()[0]
+    conn.close()
+    return total if total else 0
