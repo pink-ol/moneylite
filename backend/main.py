@@ -48,3 +48,9 @@ async def create_expense(expense_input: ExpenseInput):
 @app.get("/expenses", response_model=list[dict])
 async def read_expenses():
     return crud.get_expenses()
+
+@app.delete("/expenses/{expense_id}", response_model=dict)
+async def remove_expense(expense_id: int):
+    """指定されたIDの出費を削除する"""
+    success = crud.delete_expense(expense_id)
+    return {"ok": success}

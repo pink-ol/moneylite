@@ -53,6 +53,31 @@ function App() {
     }
   };
 
+  // 削除ボタンが押された時の処理
+  const handleDelete = async (idToDelete) => {
+    // ユーザーに確認を求める
+    if (!window.confirm("この項目を本当に削除しますか？")) {
+      return; // キャンセルされたら何もしない
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/expenses/${idToDelete}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('削除に失敗しました');
+      }
+      
+      // 成功したら、画面上のリストからも削除する
+      // IDが一致しないものだけを残す、というロジック
+      setExpenses(expenses.filter(expense => expense.id !== idToDelete));
+
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -78,22 +103,28 @@ function App() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ border: '1px solid white', padding: '8px' }}>日時</th>
-                <th style={{ border: '1px solid white', padding: '8px' }}>品目</th>
-                <th style={{ border: '1px solid white', padding: '8px' }}>カテゴリ</th>
-                <th style={{ border: '1px solid white', padding: '8px' }}>金額</th>
+                <th style={{ border: '1px solid #555', padding: '8px' }}>日時</th>
+                <th style={{ border: '1px solid #555', padding: '8px' }}>品目</th>
+                <th style={{ border: '1px solid #555', padding: '8px' }}>カテゴリ</th>
+                <th style={{ border: '1px solid #555', padding: '8px' }}>金額</th>
+                <th style={{ border: '1px solid #555', padding: '8px'}}>操作</th>
               </tr>
             </thead>
             <tbody>
               {expenses.map((expense) => (
                 <tr key={expense.id}>
-                  <td style={{ border: '1px solid white', padding: '8px' }}>
+                  <td style={{ border: '1px solid #555', padding: '8px' }}>
                     {new Date(expense.created_at).toLocaleString('ja-JP')}
                   </td>
-                  <td style={{ border: '1px solid white', padding: '8px' }}>{expense.item}</td>
-                  <td style={{ border: '1px solid white', padding: '8px' }}>{expense.category}</td>
-                  <td style={{ border: '1px solid white', padding: '8px', textAlign: 'right' }}>
+                  <td style={{ border: '1px solid #555', padding: '8px', textAlign: 'left' }}>{expense.item}</td>
+                  <td style={{ border: '1px solid #555', padding: '8px' }}>{expense.category}</td>
+                  <td style={{ border: '1px solid #555', padding: '8px', textAlign: 'right' }}>
                     {expense.price.toLocaleString()} 円
+                  </td>
+                  <td style={{ border: '1px solid #555', padding: '8px', textAlign: 'center'}}>
+                    <button onClick={() => handleDelete(expense.id)} style={{ color: 'white', background: '#dc3545', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer' }}>
+                      削除
+                    </button>
                   </td>
                 </tr>
               ))}

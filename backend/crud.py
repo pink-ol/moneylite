@@ -35,3 +35,18 @@ def get_expenses() -> list[dict]:
 
     conn.close()
     return expenses
+
+def delete_expense(expense_id: int) -> bool:
+    """指定されたIDの出費をデータベースから削除する"""
+    conn = sqlite3.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    
+    # 指定されたIDの行を削除するSQL
+    cursor.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    conn.commit()
+    
+    # 変更が成功したか（1行以上が影響を受けたか）を判定
+    success = conn.total_changes > 0
+    
+    conn.close()
+    return success

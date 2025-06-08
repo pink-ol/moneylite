@@ -5,8 +5,28 @@ mkdir mymoneylite && cd mymoneylite
 mkdir backend
 cd backend
 
-python -m venv .venv
-.venv\Scripts\activate
+python -m venv venv
+.\venv\Scripts\activate
 
 pip install "fastapi[all]"
 
+cd ..
+uvicorn backend.main:app --reload
+
+npm create vite@latest
+    frontend
+    React
+    JavaScript
+
+cd frontend
+npm install
+http://localhost:5173/で確認
+
+cd ..
+git init
+
+git add .
+git commit -m "Initial commit: Setup project structure and dev environments"
+
+git remote add origin https://github.com/pink-ol/moneylite.git
+git push -u origin main
